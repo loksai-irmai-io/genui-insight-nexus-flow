@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { ChatInterface } from '@/components/ChatInterface';
@@ -61,40 +60,56 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-500 via-purple-600 to-blue-700">
+    <div className="min-h-screen bg-gradient-to-br from-pink-500 via-purple-600 to-blue-700 relative overflow-x-hidden">
       <Header />
       
-      <div className="container mx-auto px-4 py-6 space-y-6">
-        <ChatInterface 
-          onModuleSelect={handleModuleSelect}
-          stagingData={stagingData}
-          isLoading={isLoading}
-          setIsLoading={setIsLoading}
-        />
+      {/* Main Content Area with proper spacing for fixed vault */}
+      <div className="container mx-auto px-4 py-6 pb-32 space-y-6">
+        <div className="animate-fade-in">
+          <ChatInterface 
+            onModuleSelect={handleModuleSelect}
+            stagingData={stagingData}
+            isLoading={isLoading}
+            setIsLoading={setIsLoading}
+          />
+        </div>
 
         {!selectedModule ? (
-          <UserVault onModuleSelect={handleModuleSelect} />
+          <div className="text-center space-y-8 animate-scale-in">
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 shadow-2xl">
+              <h2 className="text-3xl font-bold text-white mb-4 bg-gradient-to-r from-pink-300 to-blue-300 bg-clip-text text-transparent">
+                Welcome to Gen-UI
+              </h2>
+              <p className="text-white/80 text-lg max-w-2xl mx-auto">
+                Select a module from your vault below or ask me to visualize your data. 
+                I'll help you create stunning visualizations instantly.
+              </p>
+            </div>
+          </div>
         ) : (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
+          <div className="space-y-6 animate-slide-in-right">
+            <div className="flex items-center justify-between bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-xl">
               <div className="flex items-center space-x-4">
                 <Button 
                   variant="outline" 
                   onClick={handleBackToVault}
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20 transition-all duration-300 hover:scale-105"
                 >
                   ← Back to Vault
                 </Button>
-                <h2 className="text-2xl font-bold text-white">{selectedModule}</h2>
+                <h2 className="text-2xl font-bold text-white flex items-center">
+                  <span className="mr-3 text-3xl">📊</span>
+                  {selectedModule}
+                </h2>
               </div>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button className="bg-pink-600 hover:bg-pink-700 text-white">
+                  <Button className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                     Select Widgets <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-80 max-h-96 overflow-y-auto bg-gray-900 border-gray-700">
+                <DropdownMenuContent className="w-80 max-h-96 overflow-y-auto bg-gray-900/95 backdrop-blur-sm border-gray-700 shadow-2xl">
                   <WidgetSelector 
                     selectedWidgets={selectedWidgets}
                     onWidgetToggle={(widgets) => setSelectedWidgets(widgets)}
@@ -103,25 +118,28 @@ const Index = () => {
               </DropdownMenu>
             </div>
 
-            <WidgetGrid 
-              selectedWidgets={selectedWidgets}
-              stagingData={stagingData}
-              isLoading={isLoading}
-            />
+            <div className="animate-fade-in">
+              <WidgetGrid 
+                selectedWidgets={selectedWidgets}
+                stagingData={stagingData}
+                isLoading={isLoading}
+              />
+            </div>
 
             {isLoading && (
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
-                <div className="flex items-center justify-center space-x-2">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                  <span className="text-white">Processing...</span>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-xl animate-pulse">
+                <div className="flex items-center justify-center space-x-3">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-400"></div>
+                  <span className="text-white text-lg">Processing your request...</span>
                 </div>
               </div>
             )}
           </div>
         )}
-
-        <UserVault onModuleSelect={handleModuleSelect} isStatic={!!selectedModule} />
       </div>
+
+      {/* Fixed User's Vault at bottom */}
+      <UserVault onModuleSelect={handleModuleSelect} isStatic={true} />
     </div>
   );
 };
