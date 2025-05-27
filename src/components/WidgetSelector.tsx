@@ -1,4 +1,3 @@
-
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,6 +16,15 @@ export const WidgetSelector = ({ selectedWidgets, onWidgetToggle, selectedModule
   const [localSelectedWidgets, setLocalSelectedWidgets] = useState<string[]>(selectedWidgets);
 
   const widgetCategories = [
+    {
+      name: 'Real-time Data',
+      color: 'text-emerald-400',
+      widgets: [
+        'Weather',
+        'News',
+        'AI Chat'
+      ]
+    },
     {
       name: 'Object Interactions',
       color: 'text-blue-400',

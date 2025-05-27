@@ -5,6 +5,9 @@ import { ResourcePerformanceWidget } from '@/components/widgets/ResourcePerforma
 import { OutlierAnalysisWidget } from '@/components/widgets/OutlierAnalysisWidget';
 import { PatternAnalysisWidget } from '@/components/widgets/PatternAnalysisWidget';
 import { ActivityTimingWidget } from '@/components/widgets/ActivityTimingWidget';
+import { WeatherWidget } from '@/components/widgets/WeatherWidget';
+import { NewsWidget } from '@/components/widgets/NewsWidget';
+import { AIChatWidget } from '@/components/widgets/AIChatWidget';
 import { Sparkles } from 'lucide-react';
 
 interface WidgetGridProps {
@@ -36,6 +39,24 @@ export const WidgetGrid = ({ selectedWidgets, stagingData, isLoading }: WidgetGr
     const animationDelay = index * 100;
 
     switch (widgetName) {
+      case 'Weather':
+        return (
+          <div key={widgetName} className="animate-fade-in" style={{ animationDelay: `${animationDelay}ms` }}>
+            <WeatherWidget />
+          </div>
+        );
+      case 'News':
+        return (
+          <div key={widgetName} className="animate-fade-in" style={{ animationDelay: `${animationDelay}ms` }}>
+            <NewsWidget />
+          </div>
+        );
+      case 'AI Chat':
+        return (
+          <div key={widgetName} className="animate-fade-in" style={{ animationDelay: `${animationDelay}ms` }}>
+            <AIChatWidget />
+          </div>
+        );
       case 'Object Type Interactions':
         return (
           <div key={widgetName} className="animate-fade-in" style={{ animationDelay: `${animationDelay}ms` }}>
