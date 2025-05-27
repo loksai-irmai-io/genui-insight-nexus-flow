@@ -16,6 +16,15 @@ export const Header = () => {
     }
   };
 
+  // Get user's display name (prefer full_name, fallback to email)
+  const getUserDisplayName = () => {
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name;
+    }
+    // Extract name from email if no full name
+    return user?.email?.split('@')[0] || 'User';
+  };
+
   return (
     <header className="flex items-center justify-between p-4 bg-white/10 backdrop-blur-sm border-b border-white/20">
       <div className="flex items-center space-x-2">
@@ -28,7 +37,7 @@ export const Header = () => {
       <div className="flex items-center space-x-4">
         {user && (
           <span className="text-white/80 text-sm">
-            Welcome, {user.email}
+            Welcome, {getUserDisplayName()}
           </span>
         )}
         <Button 

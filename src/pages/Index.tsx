@@ -6,7 +6,7 @@ import { ChatInterface } from '@/components/ChatInterface';
 import { UserVault } from '@/components/UserVault';
 import { WidgetGrid } from '@/components/WidgetGrid';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, Sparkles } from 'lucide-react';
+import { ChevronDown, Sparkles, User } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +15,7 @@ import {
 import { WidgetSelector } from '@/components/WidgetSelector';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
+import { UserProfile } from '@/components/UserProfile';
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -24,6 +25,14 @@ const Index = () => {
   const [selectedWidgets, setSelectedWidgets] = useState<string[]>([]);
   const [stagingData, setStagingData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+
+  // Redirect to auth if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
 
   // Mock staging data - replace with your API call
   useEffect(() => {
@@ -90,6 +99,32 @@ const Index = () => {
     );
   }
 
+  // Don't render anything if user is not authenticated (will redirect)
+  if (!user) {
+    return null;
+  }
+
+  // Show user profile modal
+  if (showProfile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-500 via-purple-600 to-blue-700">
+        <Header />
+        <div className="container mx-auto px-4 py-6">
+          <UserProfile onClose={() => setShowProfile(false)} />
+        </div>
+      </div>
+    );
+  }
+
+  // Get user's display name (prefer full_name, fallback to email)
+  const getUserDisplayName = () => {
+    if (user.user_metadata?.full_name) {
+      return user.user_metadata.full_name;
+    }
+    // Extract name from email if no full name
+    return user.email?.split('@')[0] || 'User';
+  };
+
   // Frame 1: Welcome screen with User's Vault
   if (!selectedModule) {
     return (
@@ -104,19 +139,16 @@ const Index = () => {
                 Welcome to Gen-UI
               </h2>
               <p className="text-white/80 text-lg max-w-2xl mx-auto mb-6">
-                {user 
-                  ? `Hello ${user.email}! Your personalized widgets are ready.` 
-                  : 'Sign in to save your preferences and access personalized dashboards.'
-                }
+                Hello {getUserDisplayName()}! Your personalized widgets are ready.
               </p>
-              {!user && (
-                <Button 
-                  onClick={() => navigate('/auth')}
-                  className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-                >
-                  Sign In to Get Started
-                </Button>
-              )}
+              <Button 
+                onClick={() => setShowProfile(true)}
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20 transition-all duration-300 hover:scale-105"
+                variant="outline"
+              >
+                <User className="w-4 h-4 mr-2" />
+                View Profile
+              </Button>
             </div>
           </div>
 
