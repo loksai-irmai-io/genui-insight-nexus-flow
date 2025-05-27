@@ -13,23 +13,27 @@ serve(async (req) => {
   }
 
   try {
-    const url = new URL(req.url);
-    const city = url.searchParams.get('city') || 'London';
+    const { city = 'London' } = await req.json();
     const apiKey = Deno.env.get('OPENWEATHER_API_KEY');
+
+    console.log('Weather API request for city:', city);
 
     if (!apiKey) {
       throw new Error('OpenWeather API key not configured');
     }
 
     const weatherResponse = await fetch(
-      `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`
+      `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${apiKey}&units=metric`
     );
 
     if (!weatherResponse.ok) {
-      throw new Error('Failed to fetch weather data');
+      const errorText = await weatherResponse.text();
+      console.error('Weather API error response:', errorText);
+      throw new Error(`Weather API error: ${weatherResponse.status} - ${errorText}`);
     }
 
     const weatherData = await weatherResponse.json();
+    console.log('Weather API success for:', weatherData.name);
 
     return new Response(JSON.stringify(weatherData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

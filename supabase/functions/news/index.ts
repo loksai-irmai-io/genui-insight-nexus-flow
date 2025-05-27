@@ -13,10 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    const url = new URL(req.url);
-    const category = url.searchParams.get('category') || 'general';
-    const country = url.searchParams.get('country') || 'us';
+    const { category = 'general', country = 'us' } = await req.json();
     const apiKey = Deno.env.get('NEWS_API_KEY');
+
+    console.log('News API request:', { category, country });
 
     if (!apiKey) {
       throw new Error('News API key not configured');
@@ -27,10 +27,13 @@ serve(async (req) => {
     );
 
     if (!newsResponse.ok) {
-      throw new Error('Failed to fetch news data');
+      const errorText = await newsResponse.text();
+      console.error('News API error response:', errorText);
+      throw new Error(`News API error: ${newsResponse.status} - ${errorText}`);
     }
 
     const newsData = await newsResponse.json();
+    console.log('News API success:', { articleCount: newsData.articles?.length });
 
     return new Response(JSON.stringify(newsData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,13 +37,26 @@ export const NewsWidget = () => {
     setError(null);
     
     try {
+      console.log('Fetching news for category:', selectedCategory);
       const { data, error } = await supabase.functions.invoke('news', {
         body: { category: selectedCategory }
       });
 
-      if (error) throw error;
-      setNewsData(data);
+      console.log('News API response:', { data, error });
+
+      if (error) {
+        console.error('News API error:', error);
+        throw error;
+      }
+      
+      if (data && data.articles) {
+        setNewsData(data);
+        console.log('News data set successfully:', data.articles.length, 'articles');
+      } else {
+        throw new Error('No articles found in response');
+      }
     } catch (err: any) {
+      console.error('Error fetching news:', err);
       setError(err.message || 'Failed to fetch news data');
     } finally {
       setLoading(false);
@@ -50,6 +64,7 @@ export const NewsWidget = () => {
   };
 
   useEffect(() => {
+    console.log('NewsWidget mounted, fetching initial news...');
     fetchNews(category);
   }, [category]);
 
@@ -70,6 +85,15 @@ export const NewsWidget = () => {
             <Newspaper className="w-5 h-5 mr-2 text-blue-400" />
             Latest News
           </h3>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => fetchNews(category)}
+            disabled={loading}
+            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+          >
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </Button>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -90,21 +114,25 @@ export const NewsWidget = () => {
         </div>
 
         {loading && (
-          <div className="text-center text-white/70">Loading news...</div>
+          <div className="text-center text-white/70 py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-2"></div>
+            Loading latest news...
+          </div>
         )}
 
         {error && (
-          <div className="text-red-400 text-sm p-2 bg-red-400/10 rounded">
+          <div className="text-red-400 text-sm p-4 bg-red-400/10 rounded border border-red-400/20">
+            <div className="font-semibold mb-1">Error loading news:</div>
             {error}
           </div>
         )}
 
-        {newsData && (
+        {newsData && newsData.articles && newsData.articles.length > 0 && (
           <div className="space-y-3 max-h-96 overflow-y-auto">
             {newsData.articles.map((article, index) => (
               <div 
                 key={index}
-                className="bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-colors"
+                className="bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-colors border border-white/10"
               >
                 <div className="flex space-x-3">
                   {article.urlToImage && (
@@ -112,15 +140,20 @@ export const NewsWidget = () => {
                       src={article.urlToImage}
                       alt={article.title}
                       className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
                     />
                   )}
                   <div className="flex-1 min-w-0">
                     <h4 className="text-white font-medium text-sm line-clamp-2 mb-2">
                       {article.title}
                     </h4>
-                    <p className="text-white/70 text-xs line-clamp-2 mb-2">
-                      {article.description}
-                    </p>
+                    {article.description && (
+                      <p className="text-white/70 text-xs line-clamp-2 mb-2">
+                        {article.description}
+                      </p>
+                    )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2 text-xs text-white/60">
                         <span>{article.source.name}</span>
@@ -140,6 +173,12 @@ export const NewsWidget = () => {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {newsData && newsData.articles && newsData.articles.length === 0 && (
+          <div className="text-center text-white/60 py-8">
+            No news articles found for this category.
           </div>
         )}
       </div>

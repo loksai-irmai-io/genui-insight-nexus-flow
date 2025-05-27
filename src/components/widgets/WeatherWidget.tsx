@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
-import { CloudSun, Thermometer, Wind, Eye, Droplets } from 'lucide-react';
+import { CloudSun, Thermometer, Wind, Eye, Droplets, RefreshCw } from 'lucide-react';
 
 interface WeatherData {
   name: string;
@@ -28,6 +28,7 @@ interface WeatherData {
 export const WeatherWidget = () => {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [city, setCity] = useState('London');
+  const [inputCity, setInputCity] = useState('London');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,13 +37,27 @@ export const WeatherWidget = () => {
     setError(null);
     
     try {
+      console.log('Fetching weather for city:', cityName);
       const { data, error } = await supabase.functions.invoke('weather', {
         body: { city: cityName }
       });
 
-      if (error) throw error;
-      setWeatherData(data);
+      console.log('Weather API response:', { data, error });
+
+      if (error) {
+        console.error('Weather API error:', error);
+        throw error;
+      }
+
+      if (data && data.name) {
+        setWeatherData(data);
+        setCity(cityName);
+        console.log('Weather data set successfully for:', data.name);
+      } else {
+        throw new Error('Invalid weather data received');
+      }
     } catch (err: any) {
+      console.error('Error fetching weather:', err);
       setError(err.message || 'Failed to fetch weather data');
     } finally {
       setLoading(false);
@@ -50,14 +65,19 @@ export const WeatherWidget = () => {
   };
 
   useEffect(() => {
+    console.log('WeatherWidget mounted, fetching initial weather...');
     fetchWeather(city);
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (city.trim()) {
-      fetchWeather(city.trim());
+    if (inputCity.trim()) {
+      fetchWeather(inputCity.trim());
     }
+  };
+
+  const handleRefresh = () => {
+    fetchWeather(city);
   };
 
   return (
@@ -68,12 +88,21 @@ export const WeatherWidget = () => {
             <CloudSun className="w-5 h-5 mr-2 text-yellow-400" />
             Weather
           </h3>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={loading}
+            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
 
         <form onSubmit={handleSearch} className="flex space-x-2">
           <Input
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
+            value={inputCity}
+            onChange={(e) => setInputCity(e.target.value)}
             placeholder="Enter city name..."
             className="bg-white/10 border-white/30 text-white placeholder:text-white/60"
           />
@@ -87,8 +116,16 @@ export const WeatherWidget = () => {
         </form>
 
         {error && (
-          <div className="text-red-400 text-sm p-2 bg-red-400/10 rounded">
+          <div className="text-red-400 text-sm p-4 bg-red-400/10 rounded border border-red-400/20">
+            <div className="font-semibold mb-1">Error loading weather:</div>
             {error}
+          </div>
+        )}
+
+        {loading && !weatherData && (
+          <div className="text-center text-white/70 py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mx-auto mb-2"></div>
+            Loading weather data...
           </div>
         )}
 
@@ -110,7 +147,7 @@ export const WeatherWidget = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="bg-white/5 rounded-lg p-3 text-center">
+              <div className="bg-white/5 rounded-lg p-3 text-center border border-white/10">
                 <Thermometer className="w-5 h-5 text-red-400 mx-auto mb-1" />
                 <div className="text-sm text-white/60">Feels like</div>
                 <div className="text-lg font-semibold text-white">
@@ -118,7 +155,7 @@ export const WeatherWidget = () => {
                 </div>
               </div>
               
-              <div className="bg-white/5 rounded-lg p-3 text-center">
+              <div className="bg-white/5 rounded-lg p-3 text-center border border-white/10">
                 <Droplets className="w-5 h-5 text-blue-400 mx-auto mb-1" />
                 <div className="text-sm text-white/60">Humidity</div>
                 <div className="text-lg font-semibold text-white">
@@ -126,7 +163,7 @@ export const WeatherWidget = () => {
                 </div>
               </div>
               
-              <div className="bg-white/5 rounded-lg p-3 text-center">
+              <div className="bg-white/5 rounded-lg p-3 text-center border border-white/10">
                 <Wind className="w-5 h-5 text-gray-400 mx-auto mb-1" />
                 <div className="text-sm text-white/60">Wind Speed</div>
                 <div className="text-lg font-semibold text-white">
@@ -134,7 +171,7 @@ export const WeatherWidget = () => {
                 </div>
               </div>
               
-              <div className="bg-white/5 rounded-lg p-3 text-center">
+              <div className="bg-white/5 rounded-lg p-3 text-center border border-white/10">
                 <Eye className="w-5 h-5 text-purple-400 mx-auto mb-1" />
                 <div className="text-sm text-white/60">Visibility</div>
                 <div className="text-lg font-semibold text-white">
