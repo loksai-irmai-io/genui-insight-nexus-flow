@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Mic, Paperclip, Sparkles } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ChatInterfaceProps {
   onModuleSelect: (module: string) => void;
@@ -33,26 +34,36 @@ export const ChatInterface = ({ onModuleSelect, stagingData, isLoading, setIsLoa
     const currentQuery = query;
     setQuery('');
 
-    // Simulate AI processing with realistic delay
-    setTimeout(() => {
-      let response = '';
-      const lowerQuery = currentQuery.toLowerCase();
+    try {
+      console.log('Sending query to AI:', currentQuery);
+      
+      // Call the actual AI API
+      const { data, error } = await supabase.functions.invoke('ai-chat', {
+        body: { message: currentQuery }
+      });
 
-      if (lowerQuery.includes('weather') || lowerQuery.includes('london')) {
-        response = '🌤️ Here is the current weather data for London: Temperature: 18°C, Humidity: 65%, Wind Speed: 12 km/h. The weather widget has been updated with real-time data.';
-      } else if (lowerQuery.includes('outlier') || lowerQuery.includes('analysis')) {
-        response = '📊 Outlier analysis reveals 3 critical cases exceeding the 180.54h threshold. The most severe case (C003) shows a duration of 245.8 hours, which is 54% above the expected threshold. Visual analysis has been updated.';
+      console.log('AI API response:', { data, error });
+
+      if (error) {
+        throw error;
+      }
+
+      let response = data?.response || 'I apologize, but I encountered an issue processing your request.';
+
+      // Check if the response suggests showing specific widgets
+      const lowerQuery = currentQuery.toLowerCase();
+      if (lowerQuery.includes('outlier') || lowerQuery.includes('analysis')) {
+        response += '\n\n📊 I can show you outlier analysis data. Let me activate the relevant visualizations.';
         onModuleSelect('Outlier Analysis');
       } else if (lowerQuery.includes('process') || lowerQuery.includes('discovery')) {
-        response = '🔍 Process discovery analysis shows 5 main process variants with an average case duration of 142.3 hours. The most frequent path handles 67% of all cases. Visualizations have been generated.';
+        response += '\n\n🔍 I can show you process discovery analysis. Let me generate the visualizations.';
         onModuleSelect('Process Discovery');
       } else if (lowerQuery.includes('performance') || lowerQuery.includes('resource')) {
-        response = '⚡ Resource performance analysis indicates ABAKER has the best average step duration at 2.5 hours, handling 145 completed tasks. Overall resource utilization is at 78%. Dashboard updated.';
+        response += '\n\n⚡ I can show you resource performance data. Activating the performance dashboard.';
+        onModuleSelect('Resource Performance');
       } else if (lowerQuery.includes('ccm') || lowerQuery.includes('complexity')) {
-        response = '⚙️ Case complexity management shows varying complexity scores across different process instances. High-complexity cases require 40% more processing time on average.';
+        response += '\n\n⚙️ I can show you case complexity management data. Loading the CCM module.';
         onModuleSelect('CCM');
-      } else {
-        response = `✨ I understand you're asking about "${currentQuery}". Based on your data, I can help visualize various aspects including Process Discovery, Outlier Analysis, Resource Performance, and Case Complexity. Would you like me to generate specific visualizations?`;
       }
 
       const aiMessage = {
@@ -64,8 +75,21 @@ export const ChatInterface = ({ onModuleSelect, stagingData, isLoading, setIsLoa
 
       setIsTyping(false);
       setChatHistory(prev => [...prev, aiMessage]);
+    } catch (error: any) {
+      console.error('AI API error:', error);
+      
+      const errorMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai' as const,
+        message: `I apologize, but I encountered an error: ${error.message || 'Unable to process your request at the moment.'}`,
+        timestamp: new Date()
+      };
+
+      setIsTyping(false);
+      setChatHistory(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 2500);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -88,6 +112,7 @@ export const ChatInterface = ({ onModuleSelect, stagingData, isLoading, setIsLoa
           </h1>
         </div>
         <p className="text-white/90 text-xl font-medium">Chat-driven insights, instantly visualized.</p>
+        <p className="text-white/70 text-sm">Powered by Google AI - Ask me anything!</p>
       </div>
 
       {/* Chat History */}
@@ -107,7 +132,7 @@ export const ChatInterface = ({ onModuleSelect, stagingData, isLoading, setIsLoa
                     </div>
                   )}
                   <div className="flex-1">
-                    <p className="text-sm leading-relaxed">{message.message}</p>
+                    <p className="text-sm leading-relaxed whitespace-pre-line">{message.message}</p>
                     <span className="text-xs opacity-70 mt-2 block">
                       {message.timestamp.toLocaleTimeString()}
                     </span>

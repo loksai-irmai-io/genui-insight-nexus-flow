@@ -65,20 +65,25 @@ const Index = () => {
     fetchStagingData();
   }, []);
 
-  // Load user's saved widgets when module is selected
+  // Load user's saved widgets when module is selected, or default widgets for new users
   useEffect(() => {
-    if (user && selectedModule && preferences.length > 0) {
-      const moduleWidgets = preferences
-        .filter(pref => pref.selected_module === selectedModule)
-        .map(pref => pref.widget_name);
-      setSelectedWidgets(moduleWidgets);
+    if (selectedModule) {
+      if (user && preferences.length > 0) {
+        const moduleWidgets = preferences
+          .filter(pref => pref.selected_module === selectedModule)
+          .map(pref => pref.widget_name);
+        setSelectedWidgets(moduleWidgets);
+      } else {
+        // Default widgets for better first-time experience
+        setSelectedWidgets(['Weather', 'News', 'AI Chat']);
+      }
     }
   }, [user, selectedModule, preferences]);
 
   const handleModuleSelect = (moduleName: string) => {
     setSelectedModule(moduleName);
     if (!user) {
-      setSelectedWidgets([]);
+      setSelectedWidgets(['Weather', 'News', 'AI Chat']);
     }
   };
 
@@ -139,16 +144,25 @@ const Index = () => {
                 Welcome to Gen-UI
               </h2>
               <p className="text-white/80 text-lg max-w-2xl mx-auto mb-6">
-                Hello {getUserDisplayName()}! Your personalized widgets are ready.
+                Hello {getUserDisplayName()}! Your personalized widgets are ready. Try the real-time AI chat below!
               </p>
-              <Button 
-                onClick={() => setShowProfile(true)}
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20 transition-all duration-300 hover:scale-105"
-                variant="outline"
-              >
-                <User className="w-4 h-4 mr-2" />
-                View Profile
-              </Button>
+              <div className="flex justify-center space-x-4">
+                <Button 
+                  onClick={() => setShowProfile(true)}
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20 transition-all duration-300 hover:scale-105"
+                  variant="outline"
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  View Profile
+                </Button>
+                <Button 
+                  onClick={() => handleModuleSelect('Real-time Dashboard')}
+                  className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white transition-all duration-300 hover:scale-105"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Try Live Widgets
+                </Button>
+              </div>
             </div>
           </div>
 
