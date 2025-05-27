@@ -9,7 +9,93 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_widget_preferences: {
+        Row: {
+          id: string
+          saved_at: string
+          selected_module: string | null
+          user_id: string
+          widget_id: string
+        }
+        Insert: {
+          id?: string
+          saved_at?: string
+          selected_module?: string | null
+          user_id: string
+          widget_id: string
+        }
+        Update: {
+          id?: string
+          saved_at?: string
+          selected_module?: string | null
+          user_id?: string
+          widget_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_widget_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_widget_preferences_widget_id_fkey"
+            columns: ["widget_id"]
+            isOneToOne: false
+            referencedRelation: "widgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      widgets: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          widget_category: string
+          widget_name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          widget_category: string
+          widget_name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          widget_category?: string
+          widget_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -1,13 +1,21 @@
 
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
+import { useEffect, useState } from 'react';
 
 interface WidgetSelectorProps {
   selectedWidgets: string[];
   onWidgetToggle: (widgets: string[]) => void;
+  selectedModule?: string;
 }
 
-export const WidgetSelector = ({ selectedWidgets, onWidgetToggle }: WidgetSelectorProps) => {
+export const WidgetSelector = ({ selectedWidgets, onWidgetToggle, selectedModule }: WidgetSelectorProps) => {
+  const { user } = useAuth();
+  const { preferences, saveWidgetPreference, removeWidgetPreference } = useUserPreferences();
+  const [localSelectedWidgets, setLocalSelectedWidgets] = useState<string[]>(selectedWidgets);
+
   const widgetCategories = [
     {
       name: 'Object Interactions',
@@ -67,21 +75,58 @@ export const WidgetSelector = ({ selectedWidgets, onWidgetToggle }: WidgetSelect
     }
   ];
 
-  const handleWidgetToggle = (widget: string, checked: boolean) => {
-    if (checked) {
-      onWidgetToggle([...selectedWidgets, widget]);
-    } else {
-      onWidgetToggle(selectedWidgets.filter(w => w !== widget));
+  // Load user preferences when component mounts or user changes
+  useEffect(() => {
+    if (user && preferences.length > 0 && selectedModule) {
+      const userWidgets = preferences
+        .filter(pref => pref.selected_module === selectedModule)
+        .map(pref => pref.widget_name);
+      setLocalSelectedWidgets(userWidgets);
+      onWidgetToggle(userWidgets);
+    }
+  }, [user, preferences, selectedModule]);
+
+  const handleWidgetToggle = async (widget: string, checked: boolean) => {
+    const newSelection = checked 
+      ? [...localSelectedWidgets, widget]
+      : localSelectedWidgets.filter(w => w !== widget);
+    
+    setLocalSelectedWidgets(newSelection);
+    onWidgetToggle(newSelection);
+
+    // Save to database if user is authenticated
+    if (user && selectedModule) {
+      if (checked) {
+        await saveWidgetPreference(widget, selectedModule);
+      } else {
+        await removeWidgetPreference(widget, selectedModule);
+      }
     }
   };
 
-  const selectAll = () => {
+  const selectAll = async () => {
     const allWidgets = widgetCategories.flatMap(cat => cat.widgets);
+    setLocalSelectedWidgets(allWidgets);
     onWidgetToggle(allWidgets);
+
+    // Save all to database if user is authenticated
+    if (user && selectedModule) {
+      for (const widget of allWidgets) {
+        await saveWidgetPreference(widget, selectedModule);
+      }
+    }
   };
 
-  const selectNone = () => {
+  const selectNone = async () => {
+    setLocalSelectedWidgets([]);
     onWidgetToggle([]);
+
+    // Remove all from database if user is authenticated
+    if (user && selectedModule) {
+      for (const widget of localSelectedWidgets) {
+        await removeWidgetPreference(widget, selectedModule);
+      }
+    }
   };
 
   return (
@@ -105,6 +150,12 @@ export const WidgetSelector = ({ selectedWidgets, onWidgetToggle }: WidgetSelect
         </Button>
       </div>
 
+      {!user && (
+        <div className="text-yellow-400 text-xs p-2 bg-yellow-400/10 rounded">
+          Sign in to save your widget preferences
+        </div>
+      )}
+
       {widgetCategories.map((category) => (
         <div key={category.name} className="space-y-2">
           <h4 className={`font-semibold ${category.color}`}>{category.name}</h4>
@@ -112,7 +163,7 @@ export const WidgetSelector = ({ selectedWidgets, onWidgetToggle }: WidgetSelect
             <div key={widget} className="flex items-start space-x-2">
               <Checkbox
                 id={widget}
-                checked={selectedWidgets.includes(widget)}
+                checked={localSelectedWidgets.includes(widget)}
                 onCheckedChange={(checked) => handleWidgetToggle(widget, checked as boolean)}
                 className="mt-1"
               />

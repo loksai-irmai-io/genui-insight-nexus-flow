@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { ChatInterface } from '@/components/ChatInterface';
 import { UserVault } from '@/components/UserVault';
@@ -12,8 +13,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { WidgetSelector } from '@/components/WidgetSelector';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 
 const Index = () => {
+  const { user, loading } = useAuth();
+  const { preferences } = useUserPreferences();
+  const navigate = useNavigate();
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const [selectedWidgets, setSelectedWidgets] = useState<string[]>([]);
   const [stagingData, setStagingData] = useState<any>(null);
@@ -50,15 +56,39 @@ const Index = () => {
     fetchStagingData();
   }, []);
 
+  // Load user's saved widgets when module is selected
+  useEffect(() => {
+    if (user && selectedModule && preferences.length > 0) {
+      const moduleWidgets = preferences
+        .filter(pref => pref.selected_module === selectedModule)
+        .map(pref => pref.widget_name);
+      setSelectedWidgets(moduleWidgets);
+    }
+  }, [user, selectedModule, preferences]);
+
   const handleModuleSelect = (moduleName: string) => {
     setSelectedModule(moduleName);
-    setSelectedWidgets([]);
+    if (!user) {
+      setSelectedWidgets([]);
+    }
   };
 
   const handleBackToVault = () => {
     setSelectedModule(null);
     setSelectedWidgets([]);
   };
+
+  // Show loading screen while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-500 via-purple-600 to-blue-700 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
+          <p className="text-white text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Frame 1: Welcome screen with User's Vault
   if (!selectedModule) {
@@ -74,9 +104,19 @@ const Index = () => {
                 Welcome to Gen-UI
               </h2>
               <p className="text-white/80 text-lg max-w-2xl mx-auto mb-6">
-                Select a module from your vault below or ask me to visualize your data. 
-                I'll help you create stunning visualizations instantly.
+                {user 
+                  ? `Hello ${user.email}! Your personalized widgets are ready.` 
+                  : 'Sign in to save your preferences and access personalized dashboards.'
+                }
               </p>
+              {!user && (
+                <Button 
+                  onClick={() => navigate('/auth')}
+                  className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                >
+                  Sign In to Get Started
+                </Button>
+              )}
             </div>
           </div>
 
@@ -119,6 +159,11 @@ const Index = () => {
               <span className="mr-3 text-3xl">📊</span>
               {selectedModule}
             </h2>
+            {user && (
+              <span className="text-white/60 text-sm">
+                ({preferences.filter(p => p.selected_module === selectedModule).length} saved widgets)
+              </span>
+            )}
           </div>
           
           <DropdownMenu>
@@ -131,6 +176,7 @@ const Index = () => {
               <WidgetSelector 
                 selectedWidgets={selectedWidgets}
                 onWidgetToggle={(widgets) => setSelectedWidgets(widgets)}
+                selectedModule={selectedModule}
               />
             </DropdownMenuContent>
           </DropdownMenu>
