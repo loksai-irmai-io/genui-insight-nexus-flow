@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { News, ExternalLink, Calendar } from 'lucide-react';
+import { Newspaper, ExternalLink, Calendar } from 'lucide-react';
 
 interface NewsArticle {
   title: string;
@@ -68,7 +67,7 @@ export const NewsWidget = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-white font-semibold flex items-center">
-            <News className="w-5 h-5 mr-2 text-blue-400" />
+            <Newspaper className="w-5 h-5 mr-2 text-blue-400" />
             Latest News
           </h3>
         </div>
