@@ -16,9 +16,18 @@ serve(async (req) => {
     const { message } = await req.json();
     const apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
 
+    console.log('AI Chat request received:', { message: message?.substring(0, 100) });
+
     if (!apiKey) {
+      console.error('Google AI API key not configured');
       throw new Error('Google AI API key not configured');
     }
+
+    if (!message) {
+      throw new Error('Message is required');
+    }
+
+    console.log('Making request to Google AI API...');
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
@@ -30,26 +39,42 @@ serve(async (req) => {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: message
+              text: `You are a helpful AI assistant for a data visualization platform called Gen-UI. The user asked: ${message}
+
+Please provide a helpful response. If they ask about data visualization, outliers, process analysis, or specific widgets, be encouraging and suggest they try the available visualization tools.`
             }]
-          }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1024,
+          }
         }),
       }
     );
 
+    console.log('Google AI API response status:', response.status);
+
     if (!response.ok) {
-      throw new Error('Failed to get AI response');
+      const errorText = await response.text();
+      console.error('Google AI API error:', errorText);
+      throw new Error(`Google AI API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated';
+    console.log('Google AI API response received successfully');
+
+    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || 'I apologize, but I was unable to generate a response. Please try again.';
 
     return new Response(JSON.stringify({ response: aiResponse }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('AI Chat error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message || 'An unexpected error occurred while processing your request.' 
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
