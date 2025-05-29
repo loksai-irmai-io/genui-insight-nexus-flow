@@ -9,6 +9,27 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      custom_pages: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -71,6 +92,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      widget_configs: {
+        Row: {
+          created_at: string
+          data_source: string | null
+          id: string
+          name: string
+          page_id: string
+          position: Json
+          settings: Json | null
+          size: Json
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_source?: string | null
+          id?: string
+          name: string
+          page_id?: string
+          position?: Json
+          settings?: Json | null
+          size?: Json
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_source?: string | null
+          id?: string
+          name?: string
+          page_id?: string
+          position?: Json
+          settings?: Json | null
+          size?: Json
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       widgets: {
         Row: {
