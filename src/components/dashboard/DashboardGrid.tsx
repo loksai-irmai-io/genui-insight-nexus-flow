@@ -39,12 +39,6 @@ export const DashboardGrid = ({ widgets, onUpdateWidget, onRemoveWidget, isEditM
     onUpdateWidget(widgetId, { isPinned: !isPinned });
   }, [onUpdateWidget]);
 
-  const getGridSize = (size: { width: number; height: number }) => {
-    const cols = Math.max(1, Math.min(4, Math.floor(size.width / 300)));
-    const rows = Math.max(1, Math.min(3, Math.floor(size.height / 200)));
-    return `col-span-${cols} row-span-${rows}`;
-  };
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6">
       {widgets.map((widget) => (
@@ -52,10 +46,9 @@ export const DashboardGrid = ({ widgets, onUpdateWidget, onRemoveWidget, isEditM
           key={widget.id}
           className={`
             relative bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 
-            transition-all duration-300 shadow-xl hover:shadow-2xl
+            transition-all duration-300 shadow-xl hover:shadow-2xl min-h-[300px]
             ${isEditMode ? 'cursor-move' : ''}
             ${widget.isPinned ? 'ring-2 ring-yellow-400' : ''}
-            ${getGridSize(widget.size)}
           `}
           draggable={isEditMode}
           onDragStart={(e) => handleDragStart(e, widget.id)}
@@ -97,7 +90,7 @@ export const DashboardGrid = ({ widgets, onUpdateWidget, onRemoveWidget, isEditM
           </div>
 
           {/* Widget Content */}
-          <div className="p-4">
+          <div className="p-4 h-[calc(100%-60px)]">
             <WidgetRenderer widget={widget} />
           </div>
         </Card>
