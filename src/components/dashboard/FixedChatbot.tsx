@@ -1,15 +1,14 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare, Send, Minimize2, Bot, Check, X } from 'lucide-react';
+import { MessageSquare, Send, Minimize2, Bot, Check, X, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ChatMessage {
   id: string;
-  type: 'user' | 'ai' | 'system';
+  type: 'user' | 'ai' | 'system' | 'error';
   message: string;
   timestamp: Date;
   action?: {
@@ -129,10 +128,12 @@ export const FixedChatbot = ({ onWidgetCommand, sopData }: FixedChatbotProps) =>
 
       setMessages(prev => [...prev, aiMessage]);
     } catch (error: any) {
+      console.error('Chatbot error:', error);
+      
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        type: 'ai',
-        message: `I apologize, but I encountered an error: ${error.message}. However, I can still help with dashboard commands and SOP deviation queries!`,
+        type: 'error',
+        message: `I'm experiencing some technical difficulties, but I can still help with dashboard commands! ${command ? 'I detected your command and can execute it directly.' : 'Try asking about SOP deviation or widget management.'}`,
         timestamp: new Date(),
         action: command ? {
           type: command.type as 'widget_change' | 'layout_change' | 'fetch_sop_data',
@@ -209,13 +210,15 @@ export const FixedChatbot = ({ onWidgetCommand, sopData }: FixedChatbotProps) =>
                   ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white' 
                   : message.type === 'system'
                   ? 'bg-blue-600/20 text-blue-200 border border-blue-400/30'
+                  : message.type === 'error'
+                  ? 'bg-orange-600/20 text-orange-200 border border-orange-400/30'
                   : 'bg-white/10 text-white'
                 }
               `}>
                 <div className="flex items-start space-x-2">
                   {message.type !== 'user' && (
                     <div className="w-6 h-6 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      {message.type === 'system' ? '🎯' : <Bot className="w-3 h-3 text-white" />}
+                      {message.type === 'system' ? '🎯' : message.type === 'error' ? <AlertCircle className="w-3 h-3 text-white" /> : <Bot className="w-3 h-3 text-white" />}
                     </div>
                   )}
                   <div className="flex-1">
