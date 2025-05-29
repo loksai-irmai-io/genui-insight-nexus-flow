@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { WidgetPalette } from '@/components/dashboard/WidgetPalette';
@@ -130,23 +129,84 @@ const Dashboard = () => {
       if (countResponse.status === 'fulfilled' && (countResponse.value as Response).ok) {
         countData = await (countResponse.value as Response).json();
       } else {
-        console.warn('Count API unavailable, using mock data');
-        countData = { count: 42, percentage: 15.3, threshold: 'low' };
+        console.warn('Count API unavailable, trying fallback to local JSON file');
+        countData = null;
       }
 
       // Handle patterns data
       if (patternsResponse.status === 'fulfilled' && (patternsResponse.value as Response).ok) {
         patternsData = await (patternsResponse.value as Response).json();
       } else {
-        console.warn('Patterns API unavailable, using mock data');
-        patternsData = {
-          patterns: [
-            { pattern: 'Late Start', frequency: 23, severity: 'medium' },
-            { pattern: 'Skipped Step', frequency: 15, severity: 'high' },
-            { pattern: 'Wrong Sequence', frequency: 8, severity: 'low' },
-            { pattern: 'Resource Missing', frequency: 12, severity: 'high' }
-          ]
-        };
+        console.warn('Patterns API unavailable, trying fallback to local JSON file');
+        patternsData = null;
+      }
+
+      // If APIs failed, try to fetch from local JSON file
+      if (!countData || !patternsData) {
+        try {
+          const jsonResponse = await fetch('/sopdeviation.json');
+          if (jsonResponse.ok) {
+            const jsonData = await jsonResponse.json();
+            console.log('Successfully loaded data from sopdeviation.json');
+            
+            // Process the JSON data to extract count and patterns
+            const sopDeviationCount = jsonData.data.filter((item: any) => item.is_sop_deviation === 1).length;
+            const totalCount = jsonData.data.reduce((sum: number, item: any) => sum + parseInt(item.pattern_count), 0);
+            const deviationPercentage = jsonData.data
+              .filter((item: any) => item.is_sop_deviation === 1)
+              .reduce((sum: number, item: any) => sum + item.percentage, 0);
+
+            if (!countData) {
+              countData = { 
+                count: sopDeviationCount, 
+                percentage: Math.round(deviationPercentage * 100) / 100, 
+                threshold: deviationPercentage > 20 ? 'high' : deviationPercentage > 10 ? 'medium' : 'low' 
+              };
+            }
+
+            if (!patternsData) {
+              // Extract top patterns from the JSON data
+              const patterns = jsonData.data
+                .filter((item: any) => item.is_sop_deviation === 1)
+                .slice(0, 5)
+                .map((item: any, index: number) => ({
+                  pattern: `Pattern ${index + 1}`,
+                  frequency: parseInt(item.pattern_count),
+                  severity: item.percentage > 10 ? 'high' : item.percentage > 5 ? 'medium' : 'low',
+                  percentage: item.percentage,
+                  sequence: item.sop_deviation_sequence_preview
+                }));
+
+              patternsData = { patterns };
+            }
+
+            toast.success('SOP deviation data loaded from local file!');
+          } else {
+            throw new Error('Local JSON file not accessible');
+          }
+        } catch (jsonError) {
+          console.warn('Local JSON file also unavailable, using demo data');
+          
+          // Final fallback to demo data
+          if (!countData) {
+            countData = { count: 42, percentage: 15.3, threshold: 'low' };
+          }
+          
+          if (!patternsData) {
+            patternsData = {
+              patterns: [
+                { pattern: 'Late Start', frequency: 23, severity: 'medium' },
+                { pattern: 'Skipped Step', frequency: 15, severity: 'high' },
+                { pattern: 'Wrong Sequence', frequency: 8, severity: 'low' },
+                { pattern: 'Resource Missing', frequency: 12, severity: 'high' }
+              ]
+            };
+          }
+          
+          toast.error('APIs and local file unavailable. Using demo data for visualization.');
+        }
+      } else {
+        toast.success('SOP deviation data loaded from APIs!');
       }
       
       const combinedData = { count: countData, patterns: patternsData };
@@ -173,46 +233,9 @@ const Dashboard = () => {
       ];
       
       setWidgets(prev => [...prev, ...sopWidgets]);
-      toast.success('SOP deviation data loaded and visualized!');
     } catch (error) {
-      console.error('Error fetching SOP data:', error);
-      toast.error('Local SOP APIs are unavailable. Using demo data for visualization.');
-      
-      // Use demo data when APIs are not available
-      const demoData = {
-        count: { count: 42, percentage: 15.3, threshold: 'low' },
-        patterns: {
-          patterns: [
-            { pattern: 'Late Start', frequency: 23, severity: 'medium' },
-            { pattern: 'Skipped Step', frequency: 15, severity: 'high' },
-            { pattern: 'Wrong Sequence', frequency: 8, severity: 'low' },
-            { pattern: 'Resource Missing', frequency: 12, severity: 'high' }
-          ]
-        }
-      };
-      
-      setSopData(demoData);
-      
-      const sopWidgets: WidgetConfig[] = [
-        {
-          id: `sop-count-${Date.now()}`,
-          type: 'KpiCard',
-          title: 'SOP Deviation Count (Demo)',
-          position: { x: 0, y: 0 },
-          size: { width: 300, height: 200 },
-          dataSource: 'sopCount'
-        },
-        {
-          id: `sop-patterns-${Date.now()}`,
-          type: 'BarChart',
-          title: 'SOP Deviation Patterns (Demo)',
-          position: { x: 1, y: 0 },
-          size: { width: 600, height: 300 },
-          dataSource: 'sopPatterns'
-        }
-      ];
-      
-      setWidgets(prev => [...prev, ...sopWidgets]);
+      console.error('Error in fetchSopData:', error);
+      toast.error('All data sources failed. Please check your connection and try again.');
     }
   };
 
