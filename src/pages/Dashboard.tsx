@@ -4,10 +4,13 @@ import { Button } from '@/components/ui/button';
 import { WidgetPalette } from '@/components/dashboard/WidgetPalette';
 import { DashboardGrid } from '@/components/dashboard/DashboardGrid';
 import { FixedChatbot } from '@/components/dashboard/FixedChatbot';
+import { UserProfile } from '@/components/UserProfile';
 import { WidgetConfig, WidgetType } from '@/types/widget';
-import { Menu, Settings, Save, Undo, Edit, Eye } from 'lucide-react';
+import { Menu, Settings, Save, Edit, Eye, User, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Dashboard = () => {
   const { user, loading } = useAuth();
@@ -15,6 +18,8 @@ const Dashboard = () => {
   const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [sopData, setSopData] = useState<any>(null);
 
   // Redirect to auth if not authenticated
   useEffect(() => {
@@ -100,6 +105,47 @@ const Dashboard = () => {
     setWidgets(prev => prev.filter(widget => widget.id !== id));
   };
 
+  const fetchSopData = async () => {
+    try {
+      const [countResponse, patternsResponse] = await Promise.all([
+        fetch('http://127.0.0.1:8001/sopdeviation/low-percentage/count'),
+        fetch('http://127.0.0.1:8001/sopdeviation/patterns')
+      ]);
+      
+      const countData = await countResponse.json();
+      const patternsData = await patternsResponse.json();
+      
+      const combinedData = { count: countData, patterns: patternsData };
+      setSopData(combinedData);
+      
+      // Add SOP deviation widgets
+      const sopWidgets: WidgetConfig[] = [
+        {
+          id: `sop-count-${Date.now()}`,
+          type: 'KpiCard',
+          title: 'SOP Deviation Count',
+          position: { x: 0, y: 0 },
+          size: { width: 300, height: 200 },
+          dataSource: 'sopCount'
+        },
+        {
+          id: `sop-patterns-${Date.now()}`,
+          type: 'BarChart',
+          title: 'SOP Deviation Patterns',
+          position: { x: 1, y: 0 },
+          size: { width: 600, height: 300 },
+          dataSource: 'sopPatterns'
+        }
+      ];
+      
+      setWidgets(prev => [...prev, ...sopWidgets]);
+      toast.success('SOP deviation data loaded and visualized!');
+    } catch (error) {
+      console.error('Error fetching SOP data:', error);
+      toast.error('Failed to fetch SOP deviation data');
+    }
+  };
+
   const handleWidgetCommand = (command: string, data: any) => {
     console.log('Widget command:', command, data);
     
@@ -108,26 +154,43 @@ const Dashboard = () => {
         handleAddWidget(data.widget as WidgetType);
         break;
       case 'change_widget':
-        // Find first widget that can be changed and update its type
         const changeableWidget = widgets.find(w => !w.isPinned);
         if (changeableWidget) {
           handleUpdateWidget(changeableWidget.id, { type: data.to });
         }
         break;
       case 'remove_widget':
-        // Remove first non-pinned widget
         const removableWidget = widgets.find(w => !w.isPinned);
         if (removableWidget) {
           handleRemoveWidget(removableWidget.id);
         }
         break;
+      case 'fetch_sop_data':
+        fetchSopData();
+        break;
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      navigate('/auth');
+      toast.success('Logged out successfully');
+    } catch (error) {
+      toast.error('Error logging out');
     }
   };
 
   const saveDashboard = () => {
-    // In a real app, this would save to the database
     localStorage.setItem('dashboard-layout', JSON.stringify(widgets));
-    console.log('Dashboard saved!');
+    toast.success('Dashboard saved!');
+  };
+
+  const getUserDisplayName = () => {
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name;
+    }
+    return user?.email?.split('@')[0] || 'User';
   };
 
   // Show loading screen while checking authentication
@@ -167,6 +230,16 @@ const Dashboard = () => {
             </div>
             
             <div className="flex items-center space-x-2">
+              <span className="text-white/80 text-sm">Welcome, {getUserDisplayName()}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowProfile(!showProfile)}
+                className="border-white/30 text-white hover:bg-white/10"
+              >
+                <User className="w-4 h-4 mr-2" />
+                Profile
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -190,24 +263,40 @@ const Dashboard = () => {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={handleLogout}
                 className="border-white/30 text-white hover:bg-white/10"
               >
-                <Settings className="w-4 h-4" />
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className={`transition-all duration-300 ${isPaletteOpen ? 'ml-80' : 'ml-0'}`}>
-        <DashboardGrid
-          widgets={widgets}
-          onUpdateWidget={handleUpdateWidget}
-          onRemoveWidget={handleRemoveWidget}
-          isEditMode={isEditMode}
-        />
-      </main>
+      {/* User Profile Modal */}
+      {showProfile && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 max-w-md w-full border border-white/20">
+            <UserProfile onClose={() => setShowProfile(false)} />
+          </div>
+        </div>
+      )}
+
+      {/* Main Content with new layout */}
+      <div className="flex h-[calc(100vh-73px)]">
+        {/* Left side - 3/4 width for widgets */}
+        <main className={`flex-1 transition-all duration-300 ${isPaletteOpen ? 'ml-80' : 'ml-0'} pr-4`}>
+          <div className="h-full pb-32"> {/* Bottom padding for chatbot */}
+            <DashboardGrid
+              widgets={widgets}
+              onUpdateWidget={handleUpdateWidget}
+              onRemoveWidget={handleRemoveWidget}
+              isEditMode={isEditMode}
+            />
+          </div>
+        </main>
+      </div>
 
       {/* Widget Palette */}
       <WidgetPalette
@@ -216,8 +305,10 @@ const Dashboard = () => {
         onToggle={() => setIsPaletteOpen(!isPaletteOpen)}
       />
 
-      {/* Fixed Chatbot */}
-      <FixedChatbot onWidgetCommand={handleWidgetCommand} />
+      {/* Fixed Chatbot - Bottom left, 3/4 width */}
+      <div className="fixed bottom-6 left-6 right-1/4 z-40">
+        <FixedChatbot onWidgetCommand={handleWidgetCommand} sopData={sopData} />
+      </div>
     </div>
   );
 };

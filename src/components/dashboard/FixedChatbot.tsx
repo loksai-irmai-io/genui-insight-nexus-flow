@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare, Send, Minimize2, Maximize2, Bot, User, Check, X } from 'lucide-react';
+import { MessageSquare, Send, Minimize2, Bot, Check, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ChatMessage {
@@ -13,7 +13,7 @@ interface ChatMessage {
   message: string;
   timestamp: Date;
   action?: {
-    type: 'widget_change' | 'layout_change';
+    type: 'widget_change' | 'layout_change' | 'fetch_sop_data';
     description: string;
     data: any;
   };
@@ -22,15 +22,16 @@ interface ChatMessage {
 
 interface FixedChatbotProps {
   onWidgetCommand: (command: string, data: any) => void;
+  sopData?: any;
 }
 
-export const FixedChatbot = ({ onWidgetCommand }: FixedChatbotProps) => {
+export const FixedChatbot = ({ onWidgetCommand, sopData }: FixedChatbotProps) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
       type: 'system',
-      message: 'Welcome to Gen-UI! I can help you manage your dashboard widgets. Try commands like "add a bar chart" or "switch sentiment analysis to pie chart".',
+      message: 'Welcome to Gen-UI Dashboard! I can help you manage widgets and analyze data. Try asking about "SOP deviation" to fetch and visualize real-time data.',
       timestamp: new Date()
     }
   ]);
@@ -46,6 +47,11 @@ export const FixedChatbot = ({ onWidgetCommand }: FixedChatbotProps) => {
 
   const parseCommand = (input: string) => {
     const lower = input.toLowerCase();
+    
+    // SOP deviation query
+    if (lower.includes('sop deviation') || lower.includes('sop data')) {
+      return { type: 'fetch_sop_data', description: 'Fetch SOP deviation data from APIs' };
+    }
     
     // Widget addition commands
     if (lower.includes('add') && (lower.includes('chart') || lower.includes('widget'))) {
@@ -94,22 +100,29 @@ export const FixedChatbot = ({ onWidgetCommand }: FixedChatbotProps) => {
       // Send to AI for processing
       const { data, error } = await supabase.functions.invoke('ai-chat', {
         body: { 
-          message: `User command: "${currentInput}". Context: This is a dashboard management request. ${
+          message: `User command: "${currentInput}". Context: This is a dashboard management request for Gen-UI. ${
             command ? `Detected command: ${JSON.stringify(command)}` : 'No specific command detected.'
-          }. Please provide a helpful response and suggest dashboard actions if relevant.` 
+          }. The user can ask about SOP deviation to fetch real-time data. Please provide a helpful response.` 
         }
       });
 
       if (error) throw error;
 
+      let aiResponse = data.response;
+      
+      // Add context about SOP data if available
+      if (command?.type === 'fetch_sop_data' && sopData) {
+        aiResponse += `\n\nI can see SOP deviation data is available. The data includes count information and pattern analysis that will be visualized in new widgets.`;
+      }
+
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        message: data.response,
+        message: aiResponse,
         timestamp: new Date(),
         action: command ? {
-          type: 'widget_change',
-          description: `Execute command: ${command.type}`,
+          type: command.type as 'widget_change' | 'layout_change' | 'fetch_sop_data',
+          description: command.description || `Execute command: ${command.type}`,
           data: command
         } : undefined
       };
@@ -119,11 +132,11 @@ export const FixedChatbot = ({ onWidgetCommand }: FixedChatbotProps) => {
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        message: `I apologize, but I encountered an error: ${error.message}. However, I can still help with basic dashboard commands!`,
+        message: `I apologize, but I encountered an error: ${error.message}. However, I can still help with dashboard commands and SOP deviation queries!`,
         timestamp: new Date(),
         action: command ? {
-          type: 'widget_change',
-          description: `Execute command: ${command.type}`,
+          type: command.type as 'widget_change' | 'layout_change' | 'fetch_sop_data',
+          description: command.description || `Execute command: ${command.type}`,
           data: command
         } : undefined
       };
@@ -138,7 +151,12 @@ export const FixedChatbot = ({ onWidgetCommand }: FixedChatbotProps) => {
     setMessages(prev => prev.map(msg => 
       msg.id === messageId ? { ...msg, confirmed: true } : msg
     ));
-    onWidgetCommand(action.type, action.data);
+    
+    if (action.type === 'fetch_sop_data') {
+      onWidgetCommand('fetch_sop_data', action.data);
+    } else {
+      onWidgetCommand(action.type, action.data);
+    }
   };
 
   const rejectAction = (messageId: string) => {
@@ -151,7 +169,7 @@ export const FixedChatbot = ({ onWidgetCommand }: FixedChatbotProps) => {
     return (
       <Button
         onClick={() => setIsMinimized(false)}
-        className="fixed bottom-6 right-6 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 z-50"
+        className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
         size="lg"
       >
         <MessageSquare className="w-5 h-5 mr-2" />
@@ -161,7 +179,7 @@ export const FixedChatbot = ({ onWidgetCommand }: FixedChatbotProps) => {
   }
 
   return (
-    <Card className="fixed bottom-6 right-6 w-80 h-96 bg-gray-900/95 backdrop-blur-sm border-white/20 shadow-2xl z-50 flex flex-col">
+    <Card className="w-full h-80 bg-gray-900/95 backdrop-blur-sm border-white/20 shadow-2xl flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-white/10">
         <div className="flex items-center space-x-2">
@@ -269,7 +287,7 @@ export const FixedChatbot = ({ onWidgetCommand }: FixedChatbotProps) => {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="Ask me to modify your dashboard..."
+            placeholder="Ask about SOP deviation or manage widgets..."
             className="bg-white/10 border-white/30 text-white placeholder:text-white/60 text-sm"
             disabled={isLoading}
           />

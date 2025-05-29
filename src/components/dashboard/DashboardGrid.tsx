@@ -40,13 +40,13 @@ export const DashboardGrid = ({ widgets, onUpdateWidget, onRemoveWidget, isEditM
   }, [onUpdateWidget]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 h-full overflow-y-auto">
       {widgets.map((widget) => (
         <Card
           key={widget.id}
           className={`
             relative bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 
-            transition-all duration-300 shadow-xl hover:shadow-2xl min-h-[300px]
+            transition-all duration-300 shadow-xl hover:shadow-2xl h-80
             ${isEditMode ? 'cursor-move' : ''}
             ${widget.isPinned ? 'ring-2 ring-yellow-400' : ''}
           `}
@@ -90,7 +90,7 @@ export const DashboardGrid = ({ widgets, onUpdateWidget, onRemoveWidget, isEditM
           </div>
 
           {/* Widget Content */}
-          <div className="p-4 h-[calc(100%-60px)]">
+          <div className="p-4 h-[calc(100%-60px)] overflow-hidden">
             <WidgetRenderer widget={widget} />
           </div>
         </Card>
