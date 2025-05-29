@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { WidgetPalette } from '@/components/dashboard/WidgetPalette';
@@ -109,10 +110,10 @@ const Dashboard = () => {
       toast.info('Fetching SOP deviation data...');
       
       // Try to fetch from local APIs with timeout
-      const fetchWithTimeout = (url: string, timeout = 5000) => {
+      const fetchWithTimeout = (url: string, timeout = 5000): Promise<Response> => {
         return Promise.race([
           fetch(url),
-          new Promise((_, reject) => 
+          new Promise<Response>((_, reject) => 
             setTimeout(() => reject(new Error('Request timeout')), timeout)
           )
         ]);
@@ -126,16 +127,16 @@ const Dashboard = () => {
       let countData, patternsData;
 
       // Handle count data
-      if (countResponse.status === 'fulfilled' && countResponse.value.ok) {
-        countData = await countResponse.value.json();
+      if (countResponse.status === 'fulfilled' && (countResponse.value as Response).ok) {
+        countData = await (countResponse.value as Response).json();
       } else {
         console.warn('Count API unavailable, using mock data');
         countData = { count: 42, percentage: 15.3, threshold: 'low' };
       }
 
       // Handle patterns data
-      if (patternsResponse.status === 'fulfilled' && patternsResponse.value.ok) {
-        patternsData = await patternsResponse.value.json();
+      if (patternsResponse.status === 'fulfilled' && (patternsResponse.value as Response).ok) {
+        patternsData = await (patternsResponse.value as Response).json();
       } else {
         console.warn('Patterns API unavailable, using mock data');
         patternsData = {
