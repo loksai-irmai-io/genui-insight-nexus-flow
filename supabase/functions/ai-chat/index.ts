@@ -29,9 +29,8 @@ serve(async (req) => {
 
     console.log('Making request to Google AI API...');
 
-    // Updated to use gemini-1.5-flash instead of deprecated gemini-pro
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
@@ -42,7 +41,7 @@ serve(async (req) => {
             parts: [{
               text: `You are a helpful AI assistant for a data visualization platform called Gen-UI. The user asked: ${message}
 
-Please provide a helpful response. If they ask about data visualization, outliers, process analysis, or specific widgets, be encouraging and suggest they try the available visualization tools. If they mention SOP deviation, let them know that the system can fetch and visualize SOP deviation data from local APIs.`
+Please provide a helpful response. If they ask about data visualization, outliers, process analysis, or specific widgets, be encouraging and suggest they try the available visualization tools.`
             }]
           }],
           generationConfig: {

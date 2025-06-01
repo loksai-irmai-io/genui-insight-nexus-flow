@@ -6,7 +6,7 @@ import { ChatInterface } from '@/components/ChatInterface';
 import { UserVault } from '@/components/UserVault';
 import { WidgetGrid } from '@/components/WidgetGrid';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, Sparkles, User, BarChart3 } from 'lucide-react';
+import { ChevronDown, Sparkles, User } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -154,13 +154,6 @@ const Index = () => {
                 >
                   <User className="w-4 h-4 mr-2" />
                   View Profile
-                </Button>
-                <Button 
-                  onClick={() => navigate('/dashboard')}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white transition-all duration-300 hover:scale-105"
-                >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Open Dashboard
                 </Button>
                 <Button 
                   onClick={() => handleModuleSelect('Real-time Dashboard')}
